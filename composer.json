@@ -1,0 +1,19 @@
+{
+    "name": "rindow/rindow-math-buffer-ffi",
+    "type": "library",
+    "description": "The Buffer for math libraries",
+    "keywords": ["rindow","math","matrix","buffer","FFI"],
+    "license": "BSD-3-Clause",
+    "require": {
+        "php": "^8.1",
+        "interop-phpobjects/polite-math": "~1.0.6"
+    },
+    "require-dev": {
+        "ext-ffi": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Rindow\\Math\\Buffer\\FFI\\": "src/"
+        }
+    }
+}
