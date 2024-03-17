@@ -7,7 +7,7 @@ class BufferFactory
 {
     public function isAvailable() : bool
     {
-        return class_exists(FFI::class);
+        return extension_loaded('ffi');
     }
 
     public function Buffer(int $size, int $dtype) : Buffer
