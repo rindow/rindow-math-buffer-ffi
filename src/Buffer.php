@@ -7,6 +7,7 @@ use TypeError;
 use InvalidArgumentException;
 use OutOfRangeException;
 use LogicException;
+use RuntimeException;
 use FFI;
 
 class complex_t {
@@ -66,10 +67,18 @@ class Buffer implements LinearBuffer
 
     public function __construct(int $size, int $dtype)
     {
-        if(self::$ffi===null) {
-            $code = file_get_contents(__DIR__.'/buffer.h');
+        if ($size <= 0) {
+            throw new InvalidArgumentException("Size must be positive");
+        }
+
+        if (self::$ffi === null) {
+            $code = @file_get_contents(__DIR__ . '/buffer.h');
+            if ($code === false) {
+                throw new RuntimeException("Unable to read buffer.h file");
+            }
             self::$ffi = FFI::cdef($code);
         }
+
         if(!isset(self::$typeString[$dtype])) {
             throw new InvalidArgumentException("Invalid data type");
         }
@@ -103,7 +112,7 @@ class Buffer implements LinearBuffer
     protected function isComplex(int $dtype=null) : bool
     {
         $dtype = $dtype ?? $this->dtype;
-        return $dtype==NDArray::complex64||$dtype==NDArray::complex128;
+        return $dtype === NDArray::complex64 || $dtype === NDArray::complex128;
     }
 
     public function dtype() : int
@@ -185,5 +194,10 @@ class Buffer implements LinearBuffer
             throw new InvalidArgumentException("Unmatch data size. buffer size is $byte. $strlen byte given.");
         }
         FFI::memcpy($this->data,$string,$byte);
+    }
+
+    public function __clone()
+    {
+        $this->data = clone $this->data;
     }
 }

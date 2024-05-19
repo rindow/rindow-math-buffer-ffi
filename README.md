@@ -21,8 +21,9 @@ Requirements
 
 How to setup
 ============
+
 Install using composer.
 
+```shell
 $ composer require rindow/rindow-math-buffer-ffi
-
-
+```
