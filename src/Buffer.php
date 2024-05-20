@@ -72,7 +72,8 @@ class Buffer implements LinearBuffer
         }
 
         if (self::$ffi === null) {
-            $code = @file_get_contents(__DIR__ . '/buffer.h');
+            $header = __DIR__ . '/buffer.h';
+            $code = @file_get_contents($header);
             if ($code === false) {
                 throw new RuntimeException("Unable to read buffer.h file");
             }
@@ -89,7 +90,17 @@ class Buffer implements LinearBuffer
         $this->size = $size;
         $this->dtype = $dtype;
         $declaration = self::$typeString[$dtype];
+        $size = $this->aligned($size,$dtype,16); // 128bit
         $this->data = self::$ffi->new("{$declaration}[{$size}]");
+    }
+
+    protected function aligned(int $size, int $dtype,int $base) : int
+    {
+        $valueSize = self::$valueSize[$dtype];
+        $bytes = $size*$valueSize;
+        $alignedBytes = intdiv(($bytes+$base-1),$base)*$base;
+        $alignedSize = intdiv(($alignedBytes+$valueSize-1),$valueSize)*$valueSize;
+        return $alignedSize;
     }
 
     protected function assertOffset(string $method, mixed $offset) : void
@@ -181,7 +192,8 @@ class Buffer implements LinearBuffer
     public function dump() : string
     {
         $byte = self::$valueSize[$this->dtype] * $this->size;
-        $buf = self::$ffi->new("char[$byte]");
+        $alignedBytes = $this->aligned($byte,NDArray::int8,128);
+        $buf = self::$ffi->new("char[$alignedBytes]");
         FFI::memcpy($buf,$this->data,$byte);
         return FFI::string($buf,$byte);
     }
