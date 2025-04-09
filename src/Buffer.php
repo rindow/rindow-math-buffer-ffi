@@ -10,11 +10,6 @@ use LogicException;
 use RuntimeException;
 use FFI;
 
-class complex_t {
-    public float $real;
-    public float $imag;
-}
-
 class Buffer implements LinearBuffer
 {
     const MAX_BYTES = 2147483648; // 2**31
@@ -90,18 +85,18 @@ class Buffer implements LinearBuffer
         $this->size = $size;
         $this->dtype = $dtype;
         $declaration = self::$typeString[$dtype];
-        $size = $this->aligned($size,$dtype,16); // 128bit
+        //$size = $this->aligned($size,$dtype,16); // 128bit
         $this->data = self::$ffi->new("{$declaration}[{$size}]");
     }
 
-    protected function aligned(int $size, int $dtype,int $base) : int
-    {
-        $valueSize = self::$valueSize[$dtype];
-        $bytes = $size*$valueSize;
-        $alignedBytes = intdiv(($bytes+$base-1),$base)*$base;
-        $alignedSize = intdiv(($alignedBytes+$valueSize-1),$valueSize)*$valueSize;
-        return $alignedSize;
-    }
+    //protected function aligned(int $size, int $dtype,int $base) : int
+    //{
+    //    $valueSize = self::$valueSize[$dtype];
+    //    $bytes = $size*$valueSize;
+    //    $alignedBytes = intdiv(($bytes+$base-1),$base)*$base;
+    //    $alignedSize = intdiv(($alignedBytes+$valueSize-1),$valueSize)*$valueSize;
+    //    return $alignedSize;
+    //}
 
     protected function assertOffset(string $method, mixed $offset) : void
     {
@@ -136,6 +131,11 @@ class Buffer implements LinearBuffer
         return $this::$valueSize[$this->dtype];
     }
 
+    public function valueSize() : int
+    {
+        return $this->value_size();
+    }
+
     public function addr(int $offset) : FFI\CData
     {
         return FFI::addr($this->data[$offset]);
@@ -157,7 +157,7 @@ class Buffer implements LinearBuffer
         $this->assertOffset('offsetGet',$offset);
         $value = $this->data[$offset];
         if($this->dtype===NDArray::bool) {
-            $value = $value ? true : false;
+            $value = $value !== 0;
         }
         return $value;
     }
@@ -169,18 +169,24 @@ class Buffer implements LinearBuffer
             if(is_array($value)) {
                 [$real,$imag] = $value;
             } elseif(is_object($value)) {
+                if (!($value instanceof FFI\CData) &&
+                    (!property_exists($value, 'real') || !property_exists($value, 'imag'))) {
+                    throw new InvalidArgumentException("Complex object must have 'real' and 'imag' properties.");
+                }
                 $real = $value->real;
                 $imag = $value->imag;
             } else {
                 $type = gettype($value);
                 throw new InvalidArgumentException("Cannot convert to complex number.: ".$type);
             }
-            /** @var complex_t $value */
-            $value = self::$ffi->new(self::$typeString[$this->dtype]);
-            $value->real = $real;
-            $value->imag = $imag;
+            $this->data[$offset]->real = (float)$real;
+            $this->data[$offset]->imag = (float)$imag;
+        } else {
+            if ($this->dtype === NDArray::bool) {
+                $value = $value ? 1 : 0;
+            }
+            $this->data[$offset] = $value;
         }
-        $this->data[$offset] = $value;
     }
 
     public function offsetUnset(mixed $offset): void
@@ -192,10 +198,14 @@ class Buffer implements LinearBuffer
     public function dump() : string
     {
         $byte = self::$valueSize[$this->dtype] * $this->size;
-        $alignedBytes = $this->aligned($byte,NDArray::int8,128);
-        $buf = self::$ffi->new("char[$alignedBytes]");
-        FFI::memcpy($buf,$this->data,$byte);
-        return FFI::string($buf,$byte);
+        //$alignedBytes = $this->aligned($byte,NDArray::int8,128);
+        //$buf = self::$ffi->new("char[$alignedBytes]");
+        //FFI::memcpy($buf,$this->data,$byte);
+        //return FFI::string($buf,$byte);
+        if ($byte === 0) {
+             return '';
+        }
+        return FFI::string($this->data,$byte);
     }
 
     public function load(string $string) : void

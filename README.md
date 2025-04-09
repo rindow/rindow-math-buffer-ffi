@@ -17,7 +17,7 @@ Requirements
 ============
 
 - PHP 8.1 or PHP8.2 or PHP8.3 or PHP8.4
-- Linux or Windows
+- Linux or Windows or macOS
 
 How to setup
 ============
@@ -30,4 +30,7 @@ $ composer require rindow/rindow-math-buffer-ffi
 
 Known Issues
 ============
-The process hangs on macOS. The cause is unknown.
+When using shivammathur/setup-php@v2 to set up PHPUnit in GitHub Actions, PHPUnit hangs on macOS with a 50% probability.
+
+The cause of this is unknown.
+If you want to use PHPUnit, please do not set it up using shivammathur/setup-php@v2.
